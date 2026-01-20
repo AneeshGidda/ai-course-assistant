@@ -1,0 +1,16 @@
+{
+  "include": [
+    "backend",
+    "scripts"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.*"
+  ],
+  "extraPaths": [
+    "backend"
+  ],
+  "pythonVersion": "3.10",
+  "typeCheckingMode": "basic"
+}
