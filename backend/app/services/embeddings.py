@@ -1,1 +1,1 @@
-# Embedding generation service for text vectorization
+# embedding client

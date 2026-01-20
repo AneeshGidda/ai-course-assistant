@@ -1,1 +1,1 @@
-# Course data models and schemas
+# Course / Lecture / Chunk

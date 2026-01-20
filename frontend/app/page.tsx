@@ -1,1 +1,1 @@
-// Main landing page component
+// landing / demo

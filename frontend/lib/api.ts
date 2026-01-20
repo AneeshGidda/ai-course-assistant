@@ -1,1 +1,1 @@
-// API client functions for backend communication
+// backend API calls

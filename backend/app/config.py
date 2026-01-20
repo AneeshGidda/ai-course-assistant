@@ -1,1 +1,1 @@
-# Application configuration and environment variables
+# env vars, model config

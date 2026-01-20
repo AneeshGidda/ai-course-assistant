@@ -1,1 +1,1 @@
-# Database connection, session management, and ORM setup
+# Database connection and session management

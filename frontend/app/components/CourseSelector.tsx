@@ -1,1 +1,0 @@
-// Course selection dropdown component
