@@ -1,1 +1,1 @@
-# RAG module tests (ingestion, retrieval, etc.)
+# RAG functionality tests
