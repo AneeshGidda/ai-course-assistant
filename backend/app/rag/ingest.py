@@ -10,6 +10,7 @@ from .chunking import chunk_by_source_type
 from .parsing import parse_file
 from .validation import validate_file_for_ingestion, IngestionValidationError
 from .schemas import Chunk, SourceType
+from .vector_store import VectorStore
 
 
 def _deduplicate_chunks(chunks: List[Chunk]) -> List[Chunk]:
@@ -291,17 +292,37 @@ def ingest_file(
     # Save chunks to text files for inspection
     _save_chunks_to_files(file_path, chunks, course_root)
     
-    # TODO: Generate embeddings
-    # TODO: Store in vector database
+    # Generate embeddings and store in vector database
+    stored_count = 0
+    skipped_count = 0
+    embeddings_generated = False
+    
+    try:
+        with VectorStore() as vector_store:
+            # Delete existing chunks for this file to prevent duplicates on re-ingestion
+            # This ensures clean re-ingestion without duplicates
+            vector_store.delete_chunks_by_file(str(file_path))
+            
+            # Store chunks with embeddings
+            stored_count, skipped_count = vector_store.store_chunks(
+                chunks,
+                generate_embeddings=True
+            )
+            embeddings_generated = True
+    except Exception as e:
+        print(f"WARNING: Failed to store chunks in vector database: {e}")
+        # Continue even if vector store fails (chunks are still saved to files)
     
     return {
         "file_path": str(file_path),
         "source_type": validated_source_type.value,
-        "status": "chunked",
+        "status": "chunked_and_stored" if embeddings_generated else "chunked",
         "chunks": [chunk.to_dict() for chunk in chunks],
         "chunk_count": len(chunks),
+        "stored_count": stored_count,
+        "skipped_count": skipped_count,
         "chunking_method": chunking_method,
-        # "embeddings": [...],
+        "embeddings_generated": embeddings_generated,
     }
 
 
@@ -335,20 +356,37 @@ def ingest_course(course_code: str, data_root: str | Path = "data/raw") -> dict:
     
     # Ingest each file
     results = []
+    total_stored = 0
+    total_skipped = 0
+    
     for file_path in files:
         try:
             result = ingest_file(file_path, course_root=course_root)
             chunk_count = result.get("chunk_count", 0)
+            stored_count = result.get("stored_count", 0)
+            skipped_count = result.get("skipped_count", 0)
             chunking_method = result.get("chunking_method", "unknown")
+            embeddings_generated = result.get("embeddings_generated", False)
             file_name = Path(file_path).name
-            print(f"  {file_name}: {chunk_count} chunks ({chunking_method})")
+            
+            total_stored += stored_count
+            total_skipped += skipped_count
+            
+            status = "✓ embedded" if embeddings_generated else "⚠ no embeddings"
+            print(f"  {file_name}: {chunk_count} chunks ({chunking_method}) - {stored_count} stored, {skipped_count} skipped [{status}]")
             results.append(result)
         except IngestionValidationError as e:
             print(f"Failed to ingest {file_path}: {e}")
+    
+    total_chunks = sum(r.get("chunk_count", 0) for r in results)
+    print(f"\nTotal: {total_chunks} chunks, {total_stored} stored, {total_skipped} skipped")
     
     return {
         "course_code": course_code,
         "files_processed": len(results),
         "files_total": len(files),
+        "total_chunks": total_chunks,
+        "total_stored": total_stored,
+        "total_skipped": total_skipped,
         "results": results,
     }

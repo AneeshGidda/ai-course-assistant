@@ -12,14 +12,18 @@ from langchain_core.documents import Document as LangChainDocument
 
 from .schemas import Chunk, ChunkLocator, SourceType
 
+
 def normalize_text(text: str) -> str:
     """
     Normalize chunk text for retrieval quality.
     
+    - Remove NUL characters (PostgreSQL doesn't allow them)
     - Remove excessive whitespace
     - Normalize line breaks
     - Trim leading/trailing whitespace
     """
+    # Remove NUL characters (0x00) - PostgreSQL doesn't allow them
+    text = text.replace('\x00', '')
     # Replace multiple whitespace with single space
     text = re.sub(r'\s+', ' ', text)
     # Remove leading/trailing whitespace
