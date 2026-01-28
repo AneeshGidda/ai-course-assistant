@@ -53,6 +53,14 @@ def main():
             print("   3. Format → source_type mappings are valid")
             sys.exit(1)
         
+        # Calculate totals
+        total_chunks = result.get('total_chunks', 0)
+        total_stored = result.get('total_stored', 0)
+        total_skipped = result.get('total_skipped', 0)
+        print(f"   Total chunks: {total_chunks}")
+        print(f"   Stored in vector DB: {total_stored}")
+        print(f"   Skipped (duplicates): {total_skipped}")
+        
         # Print summary by source_type
         by_type = {}
         for r in result['results']:

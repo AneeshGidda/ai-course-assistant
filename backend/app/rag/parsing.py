@@ -4,7 +4,10 @@ Document parsing layer using LangChain document loaders.
 Extracts text content from various file formats (PDF, PPTX, DOCX, MD, TXT).
 Returns raw text and structure information (pages, slides, sections).
 """
+import warnings
 from pathlib import Path
+from contextlib import redirect_stderr
+import io
 
 from langchain_community.document_loaders import (
     PyPDFLoader,
@@ -13,6 +16,9 @@ from langchain_community.document_loaders import (
     TextLoader,
 )
 from langchain_core.documents import Document as LangChainDocument
+
+# Suppress pypdf warnings about malformed PDF objects
+warnings.filterwarnings("ignore", category=UserWarning, module="pypdf")
 
 
 def parse_text_file(file_path: Path) -> list[LangChainDocument]:
@@ -35,8 +41,15 @@ def parse_pdf(file_path: Path) -> list[LangChainDocument]:
     Returns LangChain Document objects with page numbers in metadata.
     """
     try:
-        loader = PyPDFLoader(str(file_path))
-        documents = loader.load()
+        # Suppress pypdf warnings about malformed PDF objects
+        # These warnings are harmless and don't affect text extraction
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning)
+            warnings.filterwarnings("ignore", message=".*wrong pointing object.*")
+            # Also redirect stderr to suppress pypdf print statements
+            with redirect_stderr(io.StringIO()):
+                loader = PyPDFLoader(str(file_path))
+                documents = loader.load()
         # PyPDFLoader automatically adds page numbers to metadata
         return documents
     except Exception as e:
