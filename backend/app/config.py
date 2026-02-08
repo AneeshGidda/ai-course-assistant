@@ -39,3 +39,9 @@ OPENAI_EMBEDDING_MODEL: str = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embeddin
 
 # Embedding configuration
 EMBEDDING_DIMENSION: int = 1536  # text-embedding-3-small dimension
+
+# Retrieval quality thresholds (for hallucination prevention)
+# Minimum similarity score for top result to be considered sufficient
+MIN_RETRIEVAL_CONFIDENCE: float = float(os.getenv("MIN_RETRIEVAL_CONFIDENCE", "0.5"))
+# Minimum number of chunks with similarity above threshold
+MIN_HIGH_QUALITY_CHUNKS: int = int(os.getenv("MIN_HIGH_QUALITY_CHUNKS", "2"))
