@@ -30,6 +30,11 @@ from .retrieve import (
     retrieve_chunks_by_course,
     RetrievalResult,
 )
+from .generate import (
+    generate_answer,
+    generate_answer_with_evidence,
+    AnswerWithCitations,
+)
 
 __all__ = [
     "SourceType",
@@ -60,4 +65,7 @@ __all__ = [
     "retrieve_chunks",
     "retrieve_chunks_by_course",
     "RetrievalResult",
+    "generate_answer",
+    "generate_answer_with_evidence",
+    "AnswerWithCitations",
 ]
