@@ -35,6 +35,7 @@ from .generate import (
     generate_answer_with_evidence,
     AnswerWithCitations,
 )
+from .exceptions import InsufficientMaterialError
 
 __all__ = [
     "SourceType",
@@ -68,4 +69,5 @@ __all__ = [
     "generate_answer",
     "generate_answer_with_evidence",
     "AnswerWithCitations",
+    "InsufficientMaterialError",
 ]

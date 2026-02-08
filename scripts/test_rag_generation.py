@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
 
 from app.rag.generate import generate_answer, generate_answer_with_evidence
 from app.rag.schemas import SourceType
+from app.rag.exceptions import InsufficientMaterialError
 
 
 def test_basic_answer():
@@ -260,6 +261,104 @@ def test_no_citations_warning():
     print()
 
 
+def test_refusal_behavior():
+    """Test that system refuses to answer when retrieval quality is too low."""
+    print("=" * 80)
+    print("TEST 7: Refusal Behavior (Low Retrieval Quality)")
+    print("=" * 80)
+    
+    # Use a query that likely won't match well (e.g., completely unrelated topic)
+    query = "What is the capital of Mars and how do quantum computers work in zero gravity?"
+    print(f"\nQuery: '{query}'")
+    print(f"Course: CS479")
+    print(f"Expected: System should refuse to answer due to low similarity\n")
+    
+    try:
+        result = generate_answer(
+            query=query,
+            course_code="CS479",
+            retrieval_limit=5,
+            strict_quality_check=True,  # Enable strict quality checking
+        )
+        
+        # If we get here, the system answered (might happen if threshold is very low)
+        print("⚠ WARNING: System generated an answer despite low quality query.")
+        print("This might indicate the quality threshold is too low.")
+        print("\nAnswer:")
+        print("-" * 80)
+        print(result.answer)
+        print("-" * 80)
+        
+        if result.retrieval_quality:
+            print(f"\nRetrieval Quality Metrics:")
+            print(f"  Top Similarity: {result.retrieval_quality['top_similarity']:.3f}")
+            print(f"  High Quality Chunks: {result.retrieval_quality['high_quality_chunks']}")
+            print(f"  Total Chunks: {result.retrieval_quality['total_chunks']}")
+            print(f"  Is Sufficient: {result.retrieval_quality['is_sufficient']}")
+        
+    except InsufficientMaterialError as e:
+        print("✓ CORRECT: System refused to answer due to insufficient material")
+        print("\nRefusal Message:")
+        print("-" * 80)
+        print(e.message)
+        print("-" * 80)
+        
+        print(f"\nQuality Metrics:")
+        print(f"  Top Similarity: {e.top_similarity:.3f}")
+        print(f"  High Quality Chunks: {e.high_quality_chunks}")
+        print(f"  Total Chunks: {e.total_chunks}")
+        print(f"\nThis demonstrates the hallucination prevention system working correctly.")
+        
+    except Exception as e:
+        print(f"ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+    print()
+
+
+def test_quality_metrics():
+    """Test that quality metrics are included in successful answers."""
+    print("=" * 80)
+    print("TEST 8: Quality Metrics in Successful Answers")
+    print("=" * 80)
+    
+    query = "What is backpropagation?"
+    print(f"\nQuery: '{query}'")
+    print(f"Course: CS479\n")
+    
+    try:
+        result = generate_answer(
+            query=query,
+            course_code="CS479",
+            retrieval_limit=5,
+            strict_quality_check=True,
+        )
+        
+        print("Answer:")
+        print("-" * 80)
+        print(result.answer[:200] + "..." if len(result.answer) > 200 else result.answer)
+        print("-" * 80)
+        
+        if result.retrieval_quality:
+            print(f"\n✓ Quality Metrics Included:")
+            print(f"  Top Similarity: {result.retrieval_quality['top_similarity']:.3f}")
+            print(f"  High Quality Chunks: {result.retrieval_quality['high_quality_chunks']}")
+            print(f"  Total Chunks: {result.retrieval_quality['total_chunks']}")
+            print(f"  Min Confidence Threshold: {result.retrieval_quality['min_confidence_threshold']:.3f}")
+            print(f"  Min High Quality Chunks Required: {result.retrieval_quality['min_high_quality_chunks_required']}")
+            print(f"  Is Sufficient: {result.retrieval_quality['is_sufficient']}")
+        else:
+            print("\n⚠ WARNING: No quality metrics found in result")
+        
+    except InsufficientMaterialError as e:
+        print(f"⚠ System refused to answer: {e.message}")
+    except Exception as e:
+        print(f"ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+    print()
+
+
 def main():
     """Run all tests."""
     print("\n" + "=" * 80)
@@ -272,6 +371,8 @@ def main():
     print("  - Source type filtering")
     print("  - Citation extraction and validation")
     print("  - Evidence tracking")
+    print("  - Hallucination prevention (refusal behavior)")
+    print("  - Quality metrics")
     print()
     
     try:
@@ -281,12 +382,15 @@ def main():
         test_citation_validation()
         test_convenience_function()
         test_no_citations_warning()
+        test_refusal_behavior()
+        test_quality_metrics()
         
         print("=" * 80)
         print("ALL TESTS COMPLETED")
         print("=" * 80)
         print("\nNote: Check that answers include [Citation: ...] markers")
         print("      and that citations reference actual course materials.")
+        print("      Low-quality queries should be refused to prevent hallucinations.")
         
     except KeyboardInterrupt:
         print("\n\nTests interrupted by user.")
