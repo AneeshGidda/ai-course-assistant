@@ -25,6 +25,11 @@ from .validation import (
 from .ingest import ingest_file, ingest_course, discover_course_files
 from .parsing import parse_file, parse_pdf, parse_pptx, parse_docx, parse_text_file
 from .vector_store import VectorStore
+from .retrieve import (
+    retrieve_chunks,
+    retrieve_chunks_by_course,
+    RetrievalResult,
+)
 
 __all__ = [
     "SourceType",
@@ -52,4 +57,7 @@ __all__ = [
     "parse_docx",
     "parse_text_file",
     "VectorStore",
+    "retrieve_chunks",
+    "retrieve_chunks_by_course",
+    "RetrievalResult",
 ]

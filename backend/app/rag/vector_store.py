@@ -5,6 +5,7 @@ from typing import List, Optional, Tuple
 from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+import numpy as np
 
 try:
     from pgvector.sqlalchemy import Vector  # type: ignore
@@ -169,7 +170,8 @@ class VectorStore:
         query_text: str,
         limit: int = 10,
         source_types: Optional[List[str]] = None,
-        min_similarity: float = 0.0
+        min_similarity: float = 0.0,
+        file_path_filter: Optional[str] = None
     ) -> List[Tuple[ChunkModel, float]]:
         """
         Query for similar chunks using vector similarity search.
@@ -179,6 +181,7 @@ class VectorStore:
             limit: Maximum number of results
             source_types: Optional list of source types to filter by
             min_similarity: Minimum similarity score (0.0 to 1.0)
+            file_path_filter: Optional file path pattern to filter by (supports LIKE patterns)
             
         Returns:
             List of tuples (ChunkModel, similarity_score)
@@ -197,6 +200,10 @@ class VectorStore:
         if source_types:
             query = query.filter(ChunkModel.source_type.in_(source_types))
         
+        # Filter by file path pattern if provided
+        if file_path_filter:
+            query = query.filter(ChunkModel.file_path.like(file_path_filter))
+        
         # Vector similarity search using cosine distance
         # Order by cosine distance (ascending = most similar first)
         results = query.order_by(
@@ -205,13 +212,28 @@ class VectorStore:
         
         # Calculate similarity scores and filter
         results_with_scores = []
+        query_embedding_array = np.array(query_embedding)
+        
         for result in results:
             if result.embedding is not None:  # type: ignore
-                # Calculate cosine similarity (1 - distance)
-                distance = float(result.embedding.cosine_distance(query_embedding))  # type: ignore
-                similarity = 1 - distance
+                # Convert embedding to numpy array if needed
+                result_embedding = result.embedding
+                if not isinstance(result_embedding, np.ndarray):
+                    result_embedding = np.array(result_embedding)
+                
+                # Calculate cosine similarity manually
+                # Cosine similarity = dot(a,b) / (norm(a) * norm(b))
+                dot_product = np.dot(result_embedding, query_embedding_array)
+                norm_a = np.linalg.norm(result_embedding)
+                norm_b = np.linalg.norm(query_embedding_array)
+                
+                if norm_a > 0 and norm_b > 0:
+                    similarity = dot_product / (norm_a * norm_b)
+                else:
+                    similarity = 0.0
+                
                 if similarity >= min_similarity:
-                    results_with_scores.append((result, similarity))
+                    results_with_scores.append((result, float(similarity)))
         
         # Sort by similarity (descending) - already sorted by distance, but ensure order
         results_with_scores.sort(key=lambda x: x[1], reverse=True)
